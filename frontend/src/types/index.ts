@@ -1,5 +1,21 @@
 export type DashboardMode = 'single' | 'compare' | 'abtest';
 
+export interface PromptTemplate {
+  id: string;
+  name: string;
+  prompt: string;
+  systemPrompt?: string;
+  createdAt: string;
+}
+
+
+export interface ModelParams {
+  temperature?: number;
+  topP?: number;
+  topK?: number;
+  numPredict?: number;
+}
+
 export interface OllamaModel {
   name: string;
   size: number;
@@ -130,6 +146,8 @@ export interface RequestLog {
   id: string;
   model: string;
   prompt: string;
+  systemPrompt?: string;
+  response: string;
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;

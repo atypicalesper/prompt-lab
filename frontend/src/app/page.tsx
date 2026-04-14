@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { clsx } from 'clsx';
+import { encode } from 'gpt-tokenizer';
 import { useStream } from '@/hooks/useStream';
 import { useModels } from '@/hooks/useModels';
 import { StreamingOutput } from '@/components/StreamingOutput';
@@ -11,7 +12,9 @@ import { HardwareMetrics } from '@/components/HardwareMetrics';
 import { ComparisonTable } from '@/components/ComparisonTable';
 import { AbTestPanel } from '@/components/AbTestPanel';
 import { RequestHistory } from '@/components/RequestHistory';
-import type { DashboardMode } from '@/types';
+import { ModelParamsPanel } from '@/components/ModelParamsPanel';
+import { SavedPromptsPanel } from '@/components/SavedPromptsPanel';
+import type { DashboardMode, ModelParams } from '@/types';
 
 const MODES: { id: DashboardMode; label: string }[] = [
   { id: 'single',  label: 'Single' },
@@ -23,13 +26,20 @@ export default function DashboardPage() {
   const stream = useStream();
   const { models, isLoading: modelsLoading } = useModels();
 
-  const [mode, setMode]               = useState<DashboardMode>('single');
-  const [prompt, setPrompt]           = useState('');
+  const [mode, setMode]                 = useState<DashboardMode>('single');
+  const [prompt, setPrompt]             = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
-  const [model, setModel]             = useState('');
+  const [model, setModel]               = useState('');
   const [compareModels, setCompareModels] = useState<string[]>([]);
-  const [tab, setTab]                 = useState<'output' | 'history'>('output');
-  const [showSystem, setShowSystem]   = useState(false);
+  const [tab, setTab]                   = useState<'output' | 'history'>('output');
+  const [showSystem, setShowSystem]     = useState(false);
+  const [modelParams, setModelParams]   = useState<ModelParams>({});
+
+  // Live token count using gpt-tokenizer (cl100k_base)
+  const tokenCount = useMemo(() => {
+    if (!prompt) return 0;
+    try { return encode(prompt).length; } catch { return 0; }
+  }, [prompt]);
 
   const handleModelSelect = (m: string) => {
     if (mode !== 'compare') {
@@ -43,7 +53,22 @@ export default function DashboardPage() {
 
   const handleRun = () => {
     if (!prompt || (!model && mode !== 'compare') || stream.status === 'streaming') return;
-    stream.run({ model: model || compareModels[0], prompt, systemPrompt: systemPrompt || undefined });
+    stream.run({
+      model: model || compareModels[0],
+      prompt,
+      systemPrompt: systemPrompt || undefined,
+      ...modelParams,
+    });
+  };
+
+  // Called from history "Re-run" button
+  const handleRerun = (rePrompt: string, reModel: string, reSystem?: string) => {
+    setPrompt(rePrompt);
+    setModel(reModel);
+    if (reSystem) { setSystemPrompt(reSystem); setShowSystem(true); }
+    setMode('single');
+    setTab('output');
+    stream.reset();
   };
 
   const selectedModels = mode === 'compare' ? compareModels : model ? [model] : [];
@@ -54,8 +79,8 @@ export default function DashboardPage() {
       <header className="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-screen-2xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-xs font-bold">O</div>
-            <span className="font-semibold text-zinc-100">LLM Observatory</span>
+            <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-xs font-bold">P</div>
+            <span className="font-semibold text-zinc-100">Prompt Lab</span>
             <span className="text-xs text-zinc-500 hidden sm:inline">local Ollama observability</span>
           </div>
 
@@ -101,9 +126,26 @@ export default function DashboardPage() {
             )}
           </div>
 
+          {/* Saved Prompts panel */}
+          <SavedPromptsPanel
+            currentPrompt={prompt}
+            currentSystemPrompt={systemPrompt}
+            onSelect={(p, sp) => {
+              setPrompt(p);
+              if (sp) { setSystemPrompt(sp); setShowSystem(true); }
+            }}
+          />
+
           {/* Prompt */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-zinc-400">Prompt</label>
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-zinc-400">Prompt</label>
+              {tokenCount > 0 && (
+                <span className="text-xs tabular-nums text-zinc-600">
+                  ~{tokenCount.toLocaleString()} tokens
+                </span>
+              )}
+            </div>
             <textarea
               rows={6}
               value={prompt}
@@ -152,6 +194,11 @@ export default function DashboardPage() {
             )}
           </div>
 
+          {/* Model parameters panel */}
+          {mode === 'single' && (
+            <ModelParamsPanel params={modelParams} onChange={setModelParams} />
+          )}
+
           {/* Run button */}
           {mode === 'single' && (
             <button
@@ -164,7 +211,7 @@ export default function DashboardPage() {
                   : 'bg-indigo-600 hover:bg-indigo-500 text-white',
               )}
             >
-              {stream.status === 'loading' ? 'Initialising…'
+              {stream.status === 'loading'    ? 'Initialising…'
                 : stream.status === 'streaming' ? 'Streaming…'
                 : 'Run'}
             </button>
@@ -238,7 +285,9 @@ export default function DashboardPage() {
             </>
           )}
 
-          {tab === 'history' && <RequestHistory />}
+          {tab === 'history' && (
+            <RequestHistory onRerun={handleRerun} />
+          )}
         </section>
 
         {/* ─── RIGHT: Hardware sidebar ─── */}

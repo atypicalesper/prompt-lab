@@ -4,6 +4,8 @@ import type {
   AbResult,
   LogsResponse,
   LogStats,
+  ModelParams,
+  PromptTemplate,
 } from '@/types';
 
 const BASE = '/api';
@@ -39,7 +41,7 @@ export const api = {
 
   stream: {
     // Step 1: reserve session
-    init: (body: { model: string; prompt: string; systemPrompt?: string }) =>
+    init: (body: { model: string; prompt: string; systemPrompt?: string } & ModelParams) =>
       post<{ sessionId: string }>('/llm/stream/init', body),
     // Step 2: SSE URL (used by useStream hook with EventSource)
     url: (sessionId: string) => `${BASE}/llm/stream/${sessionId}`,
@@ -59,4 +61,11 @@ export const api = {
   },
 
   hardware: () => get<import('@/types').HardwareSnapshot>('/hardware'),
+
+  templates: {
+    list: () => get<PromptTemplate[]>('/templates'),
+    create: (body: { name: string; prompt: string; systemPrompt?: string }) =>
+      post<PromptTemplate>('/templates', body),
+    remove: (id: string) => del(`/templates/${id}`),
+  },
 };

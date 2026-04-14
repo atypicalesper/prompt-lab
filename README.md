@@ -1,6 +1,6 @@
-# LLM Observatory
+# Prompt Lab
 
-A local observability dashboard for Ollama models. Streams inference in real time, surfaces token-level metrics (TTFT, TPS, context usage, cost simulation), and supports multi-model comparison and A/B prompt testing.
+A local development dashboard for Ollama models. Stream inference in real time, tune model parameters, save and reload prompts, and track detailed token-level metrics across runs.
 
 ## Prerequisites
 
@@ -18,7 +18,7 @@ ollama pull llama3.2   # or any model you want to use
 chmod +x setup.sh && ./setup.sh
 ```
 
-This installs backend and frontend dependencies, generates the Prisma client, and runs the initial DB migration (SQLite, no external DB required).
+Installs backend and frontend dependencies, generates the Prisma client, and runs the initial DB migration (SQLite, no external DB required).
 
 ## Running
 
@@ -53,6 +53,16 @@ Copy `.env.example` to `.env` in the `backend/` directory. Defaults work out of 
 | **Compare** | Same prompt → N models concurrently. Side-by-side metrics table.           |
 | **A/B Test**| Two prompts → same model in parallel. Compare quality and cost.            |
 
+**Model parameters** — per-run sliders for temperature, top-p, top-k, and max tokens. Collapsed by default; a "custom" badge appears when any value overrides the model default.
+
+**Saved prompts** — name and persist prompt + system prompt pairs to SQLite. Load any saved prompt in one click; manage (delete) from the panel.
+
+**Live token counter** — real-time cl100k_base estimate shown next to the prompt field as you type.
+
+**Streaming output** — rendered Markdown by default with a Raw toggle. Copy button available once generation completes.
+
+**Request history** — all runs persisted to SQLite with full metrics. Expandable rows show full prompt, system prompt, and response with copy and re-run buttons. Export to CSV or JSON. Paginated, clearable.
+
 **Metrics tracked per request:**
 - Time to first token (TTFT)
 - Tokens per second (TPS)
@@ -62,16 +72,15 @@ Copy `.env.example` to `.env` in the `backend/` directory. Defaults work out of 
 
 **Hardware panel** — live CPU %, RAM, GPU VRAM, and whether Ollama is running on GPU.
 
-**Request history** — all runs persisted to SQLite with full metrics. Paginated, clearable.
-
 ## Architecture
 
 ```
-llm-observatory/
+prompt-lab/
 ├── backend/           # NestJS (TypeScript)
 │   ├── src/
 │   │   ├── llm/       # Streaming, compare, A/B — Ollama client
 │   │   ├── logging/   # Prisma-backed request log
+│   │   ├── templates/ # Saved prompt CRUD (PromptTemplate)
 │   │   └── hardware/  # systeminformation snapshot
 │   └── prisma/
 │       └── schema.prisma
@@ -79,9 +88,9 @@ llm-observatory/
     └── src/
         ├── app/       # Single dashboard page
         ├── components/
-        └── hooks/     # useStream (SSE), useModels, useHardware, useHistory
+        └── hooks/     # useStream (SSE), useModels, useHardware, useHistory, useTemplates
 ```
 
-**Streaming protocol:** two-phase SSE. `POST /llm/stream/init` returns a `sessionId`; the client then opens `GET /llm/stream/:sessionId` as an `EventSource`. Events: `token`, `metrics` (every 5 tokens), `done`, `error`. Sessions are single-use with a 5-minute TTL.
+**Streaming protocol:** two-phase SSE. `POST /llm/stream/init` accepts prompt, model, system prompt, and optional generation parameters (temperature, top-p, top-k, num-predict); returns a `sessionId`. The client opens `GET /llm/stream/:sessionId` as an `EventSource`. Events: `token`, `metrics` (every 5 tokens), `done`, `error`. Sessions are single-use with a 5-minute TTL.
 
 **Token counting:** uses `gpt-tokenizer` (cl100k_base) as a pre-flight estimate. Ollama's exact counts (`eval_count`, `prompt_eval_count`) overwrite this on the final chunk.

@@ -8,6 +8,7 @@ import type {
   LiveMetrics,
   FinalMetrics,
   SseEvent,
+  ModelParams,
 } from '@/types';
 
 const INITIAL_STATE: StreamState = {
@@ -18,7 +19,7 @@ const INITIAL_STATE: StreamState = {
   error: null,
 };
 
-interface RunParams {
+interface RunParams extends ModelParams {
   model: string;
   prompt: string;
   systemPrompt?: string;
@@ -105,9 +106,15 @@ export function useStream() {
 
       // Named 'error' events are application-level errors emitted by the server
       es.addEventListener('error', (e: MessageEvent<string>) => {
-        const data = JSON.parse(e.data) as SseEvent;
-        if (data.type === 'error') {
-          setState((prev) => ({ ...prev, status: 'error', error: data.message }));
+        if (e.data) {
+          try {
+            const data = JSON.parse(e.data) as SseEvent;
+            if (data.type === 'error') {
+              setState((prev) => ({ ...prev, status: 'error', error: data.message }));
+            }
+          } catch {
+            setState((prev) => ({ ...prev, status: 'error', error: 'Stream error' }));
+          }
         }
         es.close();
         esRef.current = null;

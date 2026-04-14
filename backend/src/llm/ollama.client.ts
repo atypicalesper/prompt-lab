@@ -31,6 +31,10 @@ export interface GenerateParams {
   model: string;
   prompt: string;
   system?: string;
+  temperature?: number;
+  topP?: number;
+  topK?: number;
+  numPredict?: number;
 }
 
 @Injectable()
@@ -62,14 +66,21 @@ export class OllamaClient {
   async *generateStream(params: GenerateParams): AsyncGenerator<OllamaStreamChunk> {
     let response: Response;
     try {
+      const options: Record<string, number> = {};
+      if (params.temperature !== undefined) options['temperature'] = params.temperature;
+      if (params.topP        !== undefined) options['top_p']       = params.topP;
+      if (params.topK        !== undefined) options['top_k']       = params.topK;
+      if (params.numPredict  !== undefined) options['num_predict'] = params.numPredict;
+
       response = await fetch(`${this.baseUrl}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model:  params.model,
-          prompt: params.prompt,
-          system: params.system,
-          stream: true,
+          model:   params.model,
+          prompt:  params.prompt,
+          system:  params.system,
+          stream:  true,
+          ...(Object.keys(options).length > 0 ? { options } : {}),
         }),
       });
     } catch (err) {

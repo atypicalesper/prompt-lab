@@ -112,9 +112,13 @@ export class LlmService {
 
     try {
       for await (const chunk of this.ollama.generateStream({
-        model:  params.model,
-        prompt: params.prompt,
-        system: params.systemPrompt,
+        model:       params.model,
+        prompt:      params.prompt,
+        system:      params.systemPrompt,
+        temperature: params.temperature,
+        topP:        params.topP,
+        topK:        params.topK,
+        numPredict:  params.numPredict,
       })) {
         if (!chunk.done && chunk.response) {
           if (firstTokenMs === null) firstTokenMs = Date.now() - startMs;
