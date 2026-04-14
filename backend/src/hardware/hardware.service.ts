@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import si from 'systeminformation';
+import * as si from 'systeminformation';
 
 export interface HardwareSnapshot {
   cpu: {
