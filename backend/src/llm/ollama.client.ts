@@ -49,7 +49,7 @@ export class OllamaClient {
       const data = await res.json() as { models: OllamaModel[] };
       return data.models ?? [];
     } catch (err) {
-      const cause = err instanceof Error ? (err.cause as Error | undefined) : undefined;
+      const cause = err instanceof Error ? ((err as Error & { cause?: Error }).cause) : undefined;
       this.logger.error(
         `Failed to fetch Ollama models from ${this.baseUrl} — ${cause?.message ?? String(err)}`,
       );
@@ -73,7 +73,7 @@ export class OllamaClient {
         }),
       });
     } catch (err) {
-      const cause = err instanceof Error ? (err.cause as Error | undefined) : undefined;
+      const cause = err instanceof Error ? ((err as Error & { cause?: Error }).cause) : undefined;
       this.logger.error(
         `Ollama generate request failed (${this.baseUrl}) — ${cause?.message ?? String(err)}`,
       );
