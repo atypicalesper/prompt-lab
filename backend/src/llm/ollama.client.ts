@@ -49,7 +49,10 @@ export class OllamaClient {
       const data = await res.json() as { models: OllamaModel[] };
       return data.models ?? [];
     } catch (err) {
-      this.logger.error('Failed to fetch Ollama models', err);
+      const cause = err instanceof Error ? (err.cause as Error | undefined) : undefined;
+      this.logger.error(
+        `Failed to fetch Ollama models from ${this.baseUrl} — ${cause?.message ?? String(err)}`,
+      );
       throw new ServiceUnavailableException('Cannot reach Ollama. Is it running?');
     }
   }
@@ -70,7 +73,10 @@ export class OllamaClient {
         }),
       });
     } catch (err) {
-      this.logger.error('Ollama request failed', err);
+      const cause = err instanceof Error ? (err.cause as Error | undefined) : undefined;
+      this.logger.error(
+        `Ollama generate request failed (${this.baseUrl}) — ${cause?.message ?? String(err)}`,
+      );
       throw new ServiceUnavailableException('Cannot reach Ollama. Is it running?');
     }
 
