@@ -30,9 +30,9 @@ export class HardwareService {
 
   async getSnapshot(): Promise<HardwareSnapshot> {
     const [cpuLoad, cpuData, mem, gpuData] = await Promise.all([
-      si.currentLoad(),
-      si.cpu(),
-      si.mem(),
+      si.currentLoad().catch(() => null),
+      si.cpu().catch(() => null),
+      si.mem().catch(() => null),
       si.graphics().catch(() => null),
     ]);
 
@@ -40,29 +40,28 @@ export class HardwareService {
 
     const gpu = gpuData?.controllers?.[0]
       ? {
-          available:    true,
-          model:        gpuData.controllers[0].model ?? 'Unknown GPU',
-          vramTotalMb:  gpuData.controllers[0].vram ?? 0,
-          vramUsedMb:   gpuData.controllers[0].memoryUsed ?? 0,
-          usagePct:     gpuData.controllers[0].utilizationGpu ?? 0,
+          available:   true,
+          model:       gpuData.controllers[0].model ?? 'Unknown GPU',
+          vramTotalMb: gpuData.controllers[0].vram ?? 0,
+          vramUsedMb:  gpuData.controllers[0].memoryUsed ?? 0,
+          usagePct:    gpuData.controllers[0].utilizationGpu ?? 0,
         }
       : null;
 
-    // Heuristic: if GPU VRAM usage > 500 MB, Ollama is likely on GPU
     const ollamaRunningOnGpu = !!gpu && gpu.vramUsedMb > 500;
 
     return {
       cpu: {
-        usagePct: Math.round(cpuLoad.currentLoad),
-        cores:    cpuData.cores,
-        speed:    cpuData.speed,
-        model:    cpuData.brand,
+        usagePct: Math.round(cpuLoad?.currentLoad ?? 0),
+        cores:    cpuData?.cores ?? 0,
+        speed:    cpuData?.speed ?? 0,
+        model:    cpuData?.brand ?? 'Unknown',
       },
       memory: {
-        totalGb:  toGb(mem.total),
-        usedGb:   toGb(mem.used),
-        freeGb:   toGb(mem.free),
-        usagePct: Math.round((mem.used / mem.total) * 100),
+        totalGb:  toGb(mem?.total ?? 0),
+        usedGb:   toGb(mem?.used ?? 0),
+        freeGb:   toGb(mem?.free ?? 0),
+        usagePct: mem ? Math.round((mem.used / mem.total) * 100) : 0,
       },
       gpu,
       ollamaRunningOnGpu,
