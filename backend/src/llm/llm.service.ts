@@ -119,6 +119,7 @@ export class LlmService {
         topP:        params.topP,
         topK:        params.topK,
         numPredict:  params.numPredict,
+        numCtx:      params.numCtx,
       })) {
         if (!chunk.done && chunk.response) {
           if (firstTokenMs === null) firstTokenMs = Date.now() - startMs;
@@ -152,7 +153,7 @@ export class LlmService {
           const outputTokens = chunk.eval_count ?? outputTokenIndex;
           const evalSec      = (chunk.eval_duration ?? 0) / 1e9;
           const tokensPerSec = evalSec > 0 ? outputTokens / evalSec : outputTokenIndex / (totalMs / 1000);
-          const contextWindow    = getContextWindow(params.model);
+          const contextWindow    = params.numCtx ?? getContextWindow(params.model);
           const totalTokens      = inputTokens + outputTokens;
           const contextUsagePct  = (totalTokens / contextWindow) * 100;
           const estimatedCostUsd = simulateCost(inputTokens, outputTokens);
@@ -197,17 +198,18 @@ export class LlmService {
     }
   }
 
-  // Run same prompt across multiple models concurrently and return metrics for each
+  // Run same prompt across models one at a time — concurrent Ollama calls OOM on low-RAM machines
   async compare(dto: CompareDto) {
-    const results = await Promise.allSettled(
-      dto.models.map(async (model) => {
+    const results = [];
+    for (const model of dto.models) {
+      try {
         const start  = Date.now();
         const result = await this.ollama.generateComplete({
           model,
           prompt: dto.prompt,
           system: dto.systemPrompt,
         });
-        const totalMs      = Date.now() - start;
+        const totalMs         = Date.now() - start;
         const contextWindow   = getContextWindow(model);
         const totalTokens     = result.inputTokens + result.outputTokens;
         const contextUsagePct = (totalTokens / contextWindow) * 100;
@@ -215,36 +217,31 @@ export class LlmService {
           ? result.outputTokens / (result.evalDurationMs / 1000)
           : 0;
 
-        return {
+        results.push({
           model,
-          response:        result.response,
-          inputTokens:     result.inputTokens,
-          outputTokens:    result.outputTokens,
+          response:         result.response,
+          inputTokens:      result.inputTokens,
+          outputTokens:     result.outputTokens,
           totalTokens,
           totalMs,
-          loadMs:          result.loadDurationMs,
-          inferenceMs:     result.evalDurationMs,
+          loadMs:           result.loadDurationMs,
+          inferenceMs:      result.evalDurationMs,
           tokensPerSec,
           contextWindow,
-          contextUsagePct: Math.min(contextUsagePct, 100),
+          contextUsagePct:  Math.min(contextUsagePct, 100),
           estimatedCostUsd: simulateCost(result.inputTokens, result.outputTokens),
-        };
-      }),
-    );
-
-    return results.map((r, i) =>
-      r.status === 'fulfilled'
-        ? r.value
-        : { model: dto.models[i], error: String((r as PromiseRejectedResult).reason) },
-    );
+        });
+      } catch (err) {
+        results.push({ model, error: String(err) });
+      }
+    }
+    return results;
   }
 
-  // Run two prompts against one model concurrently
+  // Run two prompts sequentially — concurrent Ollama calls OOM on low-RAM machines
   async abTest(dto: AbTestDto) {
-    const [a, b] = await Promise.all([
-      this.runSingle(dto.model, dto.promptA, dto.systemPrompt),
-      this.runSingle(dto.model, dto.promptB, dto.systemPrompt),
-    ]);
+    const a = await this.runSingle(dto.model, dto.promptA, dto.systemPrompt);
+    const b = await this.runSingle(dto.model, dto.promptB, dto.systemPrompt);
     return { a: { label: 'Prompt A', prompt: dto.promptA, ...a }, b: { label: 'Prompt B', prompt: dto.promptB, ...b } };
   }
 

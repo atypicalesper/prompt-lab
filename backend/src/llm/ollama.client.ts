@@ -35,6 +35,7 @@ export interface GenerateParams {
   topP?: number;
   topK?: number;
   numPredict?: number;
+  numCtx?: number;
 }
 
 @Injectable()
@@ -71,6 +72,7 @@ export class OllamaClient {
       if (params.topP        !== undefined) options['top_p']       = params.topP;
       if (params.topK        !== undefined) options['top_k']       = params.topK;
       if (params.numPredict  !== undefined) options['num_predict'] = params.numPredict;
+      if (params.numCtx      !== undefined) options['num_ctx']     = params.numCtx;
 
       response = await fetch(`${this.baseUrl}/api/generate`, {
         method: 'POST',

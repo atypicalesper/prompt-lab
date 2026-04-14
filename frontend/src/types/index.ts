@@ -14,6 +14,7 @@ export interface ModelParams {
   topP?: number;
   topK?: number;
   numPredict?: number;
+  numCtx?: number;
 }
 
 export interface OllamaModel {

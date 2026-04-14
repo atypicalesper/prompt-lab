@@ -9,6 +9,9 @@ import type {
 } from '@/types';
 
 const BASE = '/api';
+// EventSource goes directly to the backend — the Next.js dev proxy buffers
+// chunked responses and breaks real-time SSE streaming.
+const SSE_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? '';
 
 async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
@@ -43,8 +46,8 @@ export const api = {
     // Step 1: reserve session
     init: (body: { model: string; prompt: string; systemPrompt?: string } & ModelParams) =>
       post<{ sessionId: string }>('/llm/stream/init', body),
-    // Step 2: SSE URL (used by useStream hook with EventSource)
-    url: (sessionId: string) => `${BASE}/llm/stream/${sessionId}`,
+    // Step 2: SSE URL — bypasses Next.js proxy to avoid response buffering
+    url: (sessionId: string) => `${SSE_BASE}/llm/stream/${sessionId}`,
   },
 
   compare: (body: { models: string[]; prompt: string; systemPrompt?: string }) =>

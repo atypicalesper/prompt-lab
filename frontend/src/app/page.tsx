@@ -79,7 +79,25 @@ export default function DashboardPage() {
       <header className="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-screen-2xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center text-xs font-bold">P</div>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className="w-7 h-7 rounded-lg">
+              <rect width="32" height="32" rx="8" fill="#0b0d14"/>
+              <circle cx="5"  cy="5"  r="0.7" fill="#818cf8" opacity="0.8"/>
+              <circle cx="27" cy="7"  r="0.5" fill="white"   opacity="0.5"/>
+              <circle cx="26" cy="24" r="0.7" fill="#818cf8" opacity="0.6"/>
+              <circle cx="7"  cy="26" r="0.5" fill="white"   opacity="0.4"/>
+              <circle cx="28" cy="17" r="0.4" fill="white"   opacity="0.35"/>
+              <circle cx="8" cy="21" r="3.2" fill="#1e1b4b"/>
+              <circle cx="8" cy="21" r="3.2" fill="none" stroke="#818cf8" strokeWidth="0.9"/>
+              <ellipse cx="8" cy="21" rx="5.8" ry="1.6" fill="none" stroke="#a5b4fc" strokeWidth="0.85" opacity="0.85" transform="rotate(-20 8 21)"/>
+              <circle cx="21.5" cy="8.5" r="2.6" fill="none" stroke="white" strokeWidth="1.1"/>
+              <path d="M20 11 Q18.5 15 16.5 17.5" fill="none" stroke="white" strokeWidth="1.2" strokeLinecap="round"/>
+              <path d="M19.5 12.5 Q23 11 25 12" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round"/>
+              <path d="M19 14 Q16.5 14.5 15 15.5" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round"/>
+              <path d="M16.5 17.5 Q15.5 20 14.5 22" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round"/>
+              <path d="M16.5 17.5 Q18.5 19 20 20.5" fill="none" stroke="white" strokeWidth="1.1" strokeLinecap="round"/>
+              <circle cx="13.5" cy="9" r="1" fill="#818cf8" opacity="0.9"/>
+              <circle cx="11"   cy="12" r="0.6" fill="#a5b4fc" opacity="0.7"/>
+            </svg>
             <span className="font-semibold text-zinc-100">Prompt Lab</span>
             <span className="text-xs text-zinc-500 hidden sm:inline">local Ollama observability</span>
           </div>

@@ -4,7 +4,7 @@ import {
   ExecutionContext,
   CallHandler,
 } from '@nestjs/common';
-import { Observable, tap } from 'rxjs';
+import { Observable, finalize } from 'rxjs';
 
 @Injectable()
 export class LatencyInterceptor implements NestInterceptor {
@@ -13,9 +13,14 @@ export class LatencyInterceptor implements NestInterceptor {
     const req = context.switchToHttp().getRequest<{ method: string; url: string }>();
 
     return next.handle().pipe(
-      tap(() => {
-        const res = context.switchToHttp().getResponse<{ setHeader: (k: string, v: string) => void }>();
-        res.setHeader('X-Response-Time', `${Date.now() - start}ms`);
+      finalize(() => {
+        const res = context.switchToHttp().getResponse<{
+          setHeader: (k: string, v: string) => void;
+          headersSent: boolean;
+        }>();
+        if (!res.headersSent) {
+          res.setHeader('X-Response-Time', `${Date.now() - start}ms`);
+        }
         console.log(`${req.method} ${req.url} — ${Date.now() - start}ms`);
       }),
     );

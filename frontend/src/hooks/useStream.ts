@@ -66,6 +66,9 @@ export function useStream() {
       const es = new EventSource(api.stream.url(sessionId));
       esRef.current = es;
 
+      // Set synchronously (before React batches) so onerror can check it in the same tick
+      let streamEnded = false;
+
       es.addEventListener('token', (e: MessageEvent<string>) => {
         const data = JSON.parse(e.data) as SseEvent;
         if (data.type !== 'token') return;
@@ -87,6 +90,7 @@ export function useStream() {
       });
 
       es.addEventListener('done', (e: MessageEvent<string>) => {
+        streamEnded = true;
         const data = JSON.parse(e.data) as SseEvent;
         if (data.type !== 'done') return;
         const final: FinalMetrics = {
@@ -106,6 +110,7 @@ export function useStream() {
 
       // Named 'error' events are application-level errors emitted by the server
       es.addEventListener('error', (e: MessageEvent<string>) => {
+        streamEnded = true;
         if (e.data) {
           try {
             const data = JSON.parse(e.data) as SseEvent;
@@ -121,8 +126,9 @@ export function useStream() {
       });
 
       // onerror fires for connection-level failures (network drop, server restart, etc.)
-      // The event is a plain Event with no .data — handle separately
+      // Guard with streamEnded so a racing onerror doesn't clobber a done/error that already fired.
       es.onerror = () => {
+        if (streamEnded) return;
         setState((prev) =>
           prev.status === 'done' ? prev : { ...prev, status: 'error', error: 'Stream connection lost' },
         );

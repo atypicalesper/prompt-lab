@@ -43,4 +43,11 @@ export class StreamInitDto {
   @IsNumber()
   @Min(-1)
   numPredict?: number;
+
+  @ApiPropertyOptional({ example: 8192, description: 'Context window size (num_ctx) sent to Ollama' })
+  @IsOptional()
+  @IsNumber()
+  @Min(512)
+  @Max(131_072)
+  numCtx?: number;
 }
