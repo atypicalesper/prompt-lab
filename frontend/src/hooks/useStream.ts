@@ -103,18 +103,25 @@ export function useStream() {
         esRef.current = null;
       });
 
+      // Named 'error' events are application-level errors emitted by the server
       es.addEventListener('error', (e: MessageEvent<string>) => {
-        try {
-          const data = JSON.parse(e.data) as SseEvent;
-          if (data.type === 'error') {
-            setState((prev) => ({ ...prev, status: 'error', error: data.message }));
-          }
-        } catch {
-          setState((prev) => ({ ...prev, status: 'error', error: 'Stream error' }));
+        const data = JSON.parse(e.data) as SseEvent;
+        if (data.type === 'error') {
+          setState((prev) => ({ ...prev, status: 'error', error: data.message }));
         }
         es.close();
         esRef.current = null;
       });
+
+      // onerror fires for connection-level failures (network drop, server restart, etc.)
+      // The event is a plain Event with no .data — handle separately
+      es.onerror = () => {
+        setState((prev) =>
+          prev.status === 'done' ? prev : { ...prev, status: 'error', error: 'Stream connection lost' },
+        );
+        es.close();
+        esRef.current = null;
+      };
     },
     [],
   );
