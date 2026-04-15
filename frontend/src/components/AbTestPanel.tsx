@@ -176,10 +176,7 @@ export function AbTestPanel({ model, systemPrompt }: Props) {
       {/* Loading skeletons */}
       {loading && (
         <div className="flex gap-4">
-          {phase === 'a'
-            ? <SkeletonSide label="Prompt A" />
-            : <SideCard side={result?.a ?? { label: 'Prompt A', response: '…', inputTokens: 0, outputTokens: 0, totalTokens: 0, totalMs: 0, tokensPerSec: 0, contextUsagePct: 0, estimatedCostUsd: 0, prompt: promptA }} phase="done" />
-          }
+          <SkeletonSide label="Prompt A" />
           <SkeletonSide label="Prompt B" />
         </div>
       )}

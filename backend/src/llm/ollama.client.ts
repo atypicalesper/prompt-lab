@@ -102,23 +102,28 @@ export class OllamaClient {
     const decoder = new TextDecoder();
     let buffer = '';
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
 
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-        try {
-          yield JSON.parse(trimmed) as OllamaStreamChunk;
-        } catch {
-          this.logger.warn(`Could not parse Ollama chunk: ${trimmed}`);
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          try {
+            yield JSON.parse(trimmed) as OllamaStreamChunk;
+          } catch {
+            this.logger.warn(`Could not parse Ollama chunk: ${trimmed}`);
+          }
         }
       }
+    } catch (err) {
+      this.logger.error('Ollama stream disconnected', err);
+      throw new ServiceUnavailableException('Ollama stream disconnected');
     }
   }
 
