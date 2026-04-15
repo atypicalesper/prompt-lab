@@ -1,6 +1,14 @@
 # Prompt Lab
 
-A local development dashboard for Ollama models. Stream inference in real time, tune model parameters, save and reload prompts, and track detailed token-level metrics across runs.
+A local LLM observability and prompt engineering dashboard running entirely on-device via Ollama. Three modes:
+
+- **Single** — stream a prompt against any local model with live token throughput, TTFT, and a context window usage gauge
+- **Compare** — same prompt across up to 4 models side-by-side, with response quality and token economics compared
+- **A/B Test** — two prompt variants against the same model to measure which is more efficient or effective
+
+Across all modes it tracks **token economics**: input/output counts, tokens/sec, context usage %, and simulated cloud cost (GPT-4o-mini rates) so you can reason about scale cost while running locally for free. A hardware sidebar shows live CPU/RAM/GPU utilization during inference. All runs are persisted with re-run support and prompt templates can be saved.
+
+Stack: NestJS backend, Next.js 15 frontend, Ollama runtime. Supports Llama, Qwen, Mistral, Gemma, Phi, DeepSeek, and ~30 other model families.
 
 ## Prerequisites
 
